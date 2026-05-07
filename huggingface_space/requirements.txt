@@ -1,0 +1,7 @@
+gradio
+huggingface_hub<1.0
+joblib
+pandas
+scikit-learn
+sentence-transformers
+datasets
