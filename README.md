@@ -58,27 +58,6 @@ cd huggingface_space
 python3 app.py
 ```
 
-## Upload Dataset to Hugging Face
-
-```bash
-information-retrieval/.venv/bin/hf upload kvest/swedish-cefr-text-complexity information-retrieval/huggingface_upload . --repo-type dataset
-```
-
-## Upload Demo to Hugging Face Spaces
-
-Create a new Space on Hugging Face with SDK `Gradio`, then upload:
-
-```bash
-information-retrieval/.venv/bin/hf upload kvest/swedish-cefr-text-classifier information-retrieval/huggingface_space . --repo-type space
-```
-
-## Submission Links
-
-Fill these into your own report:
-
-- GitHub repo: TODO
-- Hugging Face dataset: `https://huggingface.co/datasets/kvest/swedish-cefr-text-complexity`
-- Hugging Face demo: `https://huggingface.co/spaces/kvest/swedish-cefr-text-classifier`
 
 ## Limitations
 
