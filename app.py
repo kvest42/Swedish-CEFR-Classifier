@@ -20,6 +20,7 @@ from swedish_cefr_classifier import (
 
 
 DATA_PATH = Path('swedish_cefr_dataset.tsv')
+EVALUATION_PATH = Path('trained_model/evaluation.csv')
 TEST_SIZE = 0.25
 MATCH_THRESHOLD = 0.10
 TOP_K = 6
@@ -235,7 +236,21 @@ def train_demo():
     return full_data, data, label_encoder, embedding_model, best_classifier, best_name, results
 
 
+def load_official_evaluation():
+    if EVALUATION_PATH.exists():
+        return pd.read_csv(EVALUATION_PATH).round(3)
+    return pd.DataFrame(
+        [
+            {'classifier': 'Linear SVM', 'accuracy': 0.867, 'macro_f1': 0.866},
+            {'classifier': 'Logistic Regression', 'accuracy': 0.850, 'macro_f1': 0.848},
+            {'classifier': 'Random Forest', 'accuracy': 0.808, 'macro_f1': 0.805},
+            {'classifier': 'KNN', 'accuracy': 0.708, 'macro_f1': 0.704},
+        ]
+    )
+
+
 FULL_DATA, TRAIN_DATA, LABEL_ENCODER, EMBEDDING_MODEL, CLASSIFIER, BEST_NAME, RESULTS = train_demo()
+OFFICIAL_RESULTS = load_official_evaluation()
 
 
 def classify_text(text: str):
@@ -303,7 +318,13 @@ with gr.Blocks(title='Swedish CEFR Classifier', theme=THEME, css=CSS) as demo:
     )
 
     with gr.Accordion('Classifier evaluation', open=False):
-        gr.Dataframe(value=RESULTS, label='Held-out test set', interactive=False)
+        gr.Markdown(
+            '''
+            Official benchmark from `swedish_cefr_train.tsv` and `swedish_cefr_test.tsv`.
+            The live demo trains on a smaller balanced sample so the Space starts quickly.
+            '''
+        )
+        gr.Dataframe(value=OFFICIAL_RESULTS, label='Official held-out test set', interactive=False)
 
 
 if __name__ == '__main__':
