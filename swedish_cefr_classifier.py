@@ -26,17 +26,8 @@ CEFR labels:
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
-
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.svm import SVC
 
 
 TEXT_COLUMN = 'text'
@@ -46,8 +37,23 @@ DEFAULT_MODEL = 'nicher92/saga-embed_v1'
 HF_DATASET = 'UppsalaNLP/swedish-text-complexity'
 
 
+def load_pandas():
+    '''Import pandas with a helpful project-level install message.'''
+    try:
+        import pandas as pd
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: pandas\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
+    return pd
+
+
 def load_csv_dataset(path: Path | None) -> pd.DataFrame:
     '''Load a local text classification dataset or return a tiny demo dataset.'''
+    pd = load_pandas()
+
     if path is None:
         return demo_dataset()
 
@@ -67,12 +73,14 @@ def load_csv_dataset(path: Path | None) -> pd.DataFrame:
 
 def load_huggingface_dataset(dataset_name: str, label_scheme: str) -> pd.DataFrame:
     '''Load Swedish text complexity data from Hugging Face.'''
+    pd = load_pandas()
+
     try:
         from datasets import load_dataset
     except ImportError as error:
         raise SystemExit(
             'Missing dependency: datasets\n'
-            'Install it with: pip install datasets'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
         ) from error
 
     dataset = load_dataset(dataset_name, split='train')
@@ -93,6 +101,8 @@ def load_huggingface_dataset(dataset_name: str, label_scheme: str) -> pd.DataFra
 
 def extract_lix(row: pd.Series) -> float | None:
     '''Get LIX from either flattened or nested dataset columns.'''
+    pd = load_pandas()
+
     if 'metrics_lix' in row and pd.notna(row['metrics_lix']):
         return float(row['metrics_lix'])
 
@@ -105,6 +115,8 @@ def extract_lix(row: pd.Series) -> float | None:
 
 def extract_lix_category(row: pd.Series) -> str | None:
     '''Get the dataset's original LIX category when available.'''
+    pd = load_pandas()
+
     if 'metrics_lix_category' in row and pd.notna(row['metrics_lix_category']):
         return pretty_label(row['metrics_lix_category'])
 
@@ -117,6 +129,8 @@ def extract_lix_category(row: pd.Series) -> str | None:
 
 def cefr_label_from_lix(lix: float | None) -> str | None:
     '''Map LIX to approximate CEFR reading levels.'''
+    pd = load_pandas()
+
     if lix is None or pd.isna(lix):
         return None
     if lix < 25:
@@ -152,6 +166,8 @@ def clean_dataset(data: pd.DataFrame) -> pd.DataFrame:
 
 def demo_dataset() -> pd.DataFrame:
     '''Small illustrative examples only, useful for checking that the code runs.'''
+    pd = load_pandas()
+
     rows = [
         ('Katten sover. Solen skiner.', 'A1'),
         ('Jag går till skolan varje dag.', 'A1'),
@@ -176,7 +192,7 @@ def load_embedding_model(model_name: str):
     except ImportError as error:
         raise SystemExit(
             'Missing dependency: sentence-transformers\n'
-            'Install it with: pip install sentence-transformers'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
         ) from error
 
     model = SentenceTransformer(model_name)
@@ -233,6 +249,19 @@ def print_cefr_matches(
 
 def classifier_candidates() -> dict[str, object]:
     '''Return several classifiers for comparison.'''
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.neighbors import KNeighborsClassifier
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.svm import SVC
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: scikit-learn\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
     return {
         'Logistic Regression': make_pipeline(
             StandardScaler(),
@@ -256,6 +285,16 @@ def classifier_candidates() -> dict[str, object]:
 
 def train_classifiers(classifiers: dict[str, object], x_train, y_train, x_test, y_test) -> pd.DataFrame:
     '''Train classifiers and return evaluation scores.'''
+    pd = load_pandas()
+
+    try:
+        from sklearn.metrics import accuracy_score, f1_score
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: scikit-learn\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
     rows = []
     for name, classifier in classifiers.items():
         classifier.fit(x_train, y_train)
@@ -277,7 +316,20 @@ def train_and_evaluate(
     texts_to_classify: list[str],
     match_threshold: float,
     top_k: int,
+    save_model_dir: Path | None,
 ) -> None:
+    pd = load_pandas()
+
+    try:
+        from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+        from sklearn.model_selection import train_test_split
+        from sklearn.preprocessing import LabelEncoder
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: scikit-learn\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
     label_counts = data[LABEL_COLUMN].value_counts()
     too_small = label_counts[label_counts < 2]
     if not too_small.empty:
@@ -338,6 +390,20 @@ def train_and_evaluate(
     print('Confusion matrix')
     print(pd.DataFrame(confusion_matrix(y_test, predictions), index=label_names, columns=label_names))
 
+    if save_model_dir is not None:
+        save_model_artifacts(
+            save_model_dir,
+            classifier,
+            label_encoder,
+            embedding_model,
+            texts,
+            y,
+            model_name,
+            best_name,
+            scores,
+            test_size,
+        )
+
     print('\nExample test-set matches')
     print_cefr_matches(
         x_test_text[:5],
@@ -359,6 +425,150 @@ def train_and_evaluate(
         )
 
 
+def train_and_evaluate_explicit_split(
+    train_data: pd.DataFrame,
+    test_data: pd.DataFrame,
+    model_name: str,
+    texts_to_classify: list[str],
+    match_threshold: float,
+    top_k: int,
+    save_model_dir: Path | None,
+) -> None:
+    pd = load_pandas()
+
+    try:
+        from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+        from sklearn.preprocessing import LabelEncoder
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: scikit-learn\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
+    train_labels = set(train_data[LABEL_COLUMN])
+    test_labels = set(test_data[LABEL_COLUMN])
+    if train_labels != test_labels:
+        raise ValueError('Train and test datasets must contain the same label set.')
+
+    label_encoder = LabelEncoder()
+    y_train = label_encoder.fit_transform(train_data[LABEL_COLUMN].tolist())
+    y_test = label_encoder.transform(test_data[LABEL_COLUMN].tolist())
+    x_train_text = train_data[TEXT_COLUMN].tolist()
+    x_test_text = test_data[TEXT_COLUMN].tolist()
+
+    print(f'Embedding model: {model_name}')
+    embedding_model = load_embedding_model(model_name)
+    x_train = create_embeddings(embedding_model, x_train_text)
+    x_test = create_embeddings(embedding_model, x_test_text)
+
+    classifiers = classifier_candidates()
+    scores = train_classifiers(classifiers, x_train, y_train, x_test, y_test)
+    best_name = scores.iloc[0]['classifier']
+    classifier = classifiers[best_name]
+    predictions = classifier.predict(x_test)
+
+    label_names = label_encoder.classes_
+    accuracy = accuracy_score(y_test, predictions)
+
+    print('\nResults')
+    print(f'Training examples: {len(train_data)}')
+    print(f'Test examples: {len(test_data)}')
+    print('Labels: ' + ', '.join(label_names))
+    print(f'Best classifier: {best_name}')
+    print(f'Accuracy: {accuracy:.3f}\n')
+
+    print('Classifier comparison')
+    print(scores.to_string(index=False, formatters={'accuracy': '{:.3f}'.format, 'macro_f1': '{:.3f}'.format}))
+    print()
+
+    print('Classification report')
+    print(
+        classification_report(
+            y_test,
+            predictions,
+            target_names=label_names,
+            zero_division=0,
+        )
+    )
+
+    print('Confusion matrix')
+    print(pd.DataFrame(confusion_matrix(y_test, predictions), index=label_names, columns=label_names))
+
+    if save_model_dir is not None:
+        save_model_artifacts(
+            save_model_dir,
+            classifier,
+            label_encoder,
+            embedding_model,
+            x_train_text,
+            y_train,
+            model_name,
+            best_name,
+            scores,
+            0.0,
+        )
+
+    if texts_to_classify:
+        print_cefr_matches(
+            texts_to_classify,
+            classifier,
+            label_encoder,
+            embedding_model,
+            match_threshold,
+            top_k,
+        )
+
+
+def save_model_artifacts(
+    output_dir: Path,
+    classifier,
+    label_encoder,
+    embedding_model,
+    texts: list[str],
+    labels,
+    model_name: str,
+    best_classifier: str,
+    scores: pd.DataFrame,
+    test_size: float,
+) -> None:
+    '''Retrain the best classifier on all examples and save reusable artifacts.'''
+    try:
+        import joblib
+    except ImportError as error:
+        raise SystemExit(
+            'Missing dependency: joblib\n'
+            'Install project dependencies with: python3 -m pip install -r requirements.txt'
+        ) from error
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f'\nSaving trained model artifacts to: {output_dir}')
+    full_embeddings = create_embeddings(embedding_model, texts)
+    classifier.fit(full_embeddings, labels)
+
+    joblib.dump(classifier, output_dir / 'classifier.joblib')
+    joblib.dump(label_encoder, output_dir / 'label_encoder.joblib')
+    scores.to_csv(output_dir / 'evaluation.csv', index=False)
+
+    metadata = {
+        'task': 'Swedish CEFR text classification',
+        'embedding_model': model_name,
+        'best_classifier': best_classifier,
+        'labels': label_encoder.classes_.tolist(),
+        'training_examples': len(texts),
+        'test_size': test_size,
+        'artifact_files': [
+            'classifier.joblib',
+            'label_encoder.joblib',
+            'evaluation.csv',
+            'metadata.json',
+        ],
+    }
+    (output_dir / 'metadata.json').write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False) + '\n',
+        encoding='utf-8',
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description='Train a Swedish CEFR level classifier using sentence embeddings.'
@@ -368,6 +578,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help='Path to CSV/TSV with columns: text,label',
+    )
+    parser.add_argument(
+        '--train-data',
+        type=Path,
+        default=None,
+        help='Path to explicit training CSV/TSV with columns: text,label',
+    )
+    parser.add_argument(
+        '--test-data',
+        type=Path,
+        default=None,
+        help='Path to explicit test CSV/TSV with columns: text,label',
     )
     parser.add_argument(
         '--huggingface',
@@ -414,11 +636,34 @@ def parse_args() -> argparse.Namespace:
         default=3,
         help='Minimum number of CEFR matches to show',
     )
+    parser.add_argument(
+        '--save-model-dir',
+        type=Path,
+        default=None,
+        help='Directory where the best trained classifier and metadata are saved',
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+
+    if args.train_data is not None or args.test_data is not None:
+        if args.train_data is None or args.test_data is None:
+            raise SystemExit('Use --train-data and --test-data together.')
+
+        train_data = load_csv_dataset(args.train_data)
+        test_data = load_csv_dataset(args.test_data)
+        train_and_evaluate_explicit_split(
+            train_data,
+            test_data,
+            model_name=args.model,
+            texts_to_classify=args.text,
+            match_threshold=args.match_threshold,
+            top_k=args.top_k,
+            save_model_dir=args.save_model_dir,
+        )
+        return
 
     if args.huggingface:
         data = load_huggingface_dataset(args.hf_dataset, args.label_scheme)
@@ -436,6 +681,7 @@ def main() -> None:
         texts_to_classify=args.text,
         match_threshold=args.match_threshold,
         top_k=args.top_k,
+        save_model_dir=args.save_model_dir,
     )
 
 
