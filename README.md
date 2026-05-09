@@ -42,12 +42,25 @@ examples.
 
 ## Classifiers
 
-The app compares four classical classifiers:
+The project uses sentence embeddings as the shared representation for every
+classifier. This means each Swedish text is first converted into a dense vector
+with `nicher92/saga-embed_v1`; the classifiers then learn how those vectors map
+to CEFR-style labels.
 
-- Logistic Regression
-- Linear SVM
-- Random Forest
-- KNN
+Four classical classifiers are compared:
+
+- **Logistic Regression**: a linear baseline that learns weighted evidence for
+  each CEFR level. It is useful because it is simple, fast, and often strong
+  when embeddings already contain good semantic information.
+- **Linear SVM**: a margin-based linear classifier. It tries to separate the
+  CEFR levels with the widest possible decision boundaries in embedding space.
+  This was the best-performing model in the final evaluation.
+- **Random Forest**: an ensemble of decision trees. It can model non-linear
+  patterns in the embeddings, but may need more data to outperform the linear
+  models.
+- **KNN**: a nearest-neighbor classifier. It predicts based on the closest
+  training examples in embedding space, which makes it a useful similarity-based
+  comparison point.
 
 The best-performing classifier from the demo training run is used for live
 predictions in the Gradio interface.
@@ -68,6 +81,12 @@ The explicit train and test files are shuffled reproducibly with
 | Logistic Regression | 0.850 | 0.848 |
 | Random Forest | 0.808 | 0.805 |
 | KNN | 0.708 | 0.704 |
+
+The Linear SVM and Logistic Regression results suggest that the CEFR labels are
+mostly separable with linear boundaries in the embedding space. Random Forest
+performed reasonably well but did not beat the linear models. KNN was the
+weakest model, which suggests that local nearest-neighbor similarity alone is
+less stable for this six-class reading-level task.
 
 The exported model repository contains the trained Linear SVM classifier,
 label encoder, evaluation table, and metadata. The classifier artifact was
