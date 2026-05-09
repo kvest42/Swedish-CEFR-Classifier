@@ -59,12 +59,14 @@ The classifiers were evaluated on the explicit held-out test dataset
 training dataset has 600 examples and the test dataset has 120 examples. Each
 CEFR label has 100 training examples and 20 test examples. The best model was a
 Linear SVM trained on normalized `nicher92/saga-embed_v1` sentence embeddings.
+The explicit train and test files are shuffled reproducibly with
+`random_state=1004` before embedding and classification.
 
 | Classifier | Accuracy | Macro F1 |
 | --- | ---: | ---: |
 | Linear SVM | 0.867 | 0.866 |
 | Logistic Regression | 0.850 | 0.848 |
-| Random Forest | 0.783 | 0.777 |
+| Random Forest | 0.808 | 0.805 |
 | KNN | 0.708 | 0.704 |
 
 The exported model repository contains the trained Linear SVM classifier,
@@ -123,7 +125,7 @@ python3 swedish_cefr_classifier.py --huggingface --hf-dataset UppsalaNLP/swedish
 To export the best classifier after evaluation:
 
 ```bash
-python3 swedish_cefr_classifier.py --data swedish_cefr_dataset.tsv --save-model-dir trained_model
+python3 swedish_cefr_classifier.py --train-data swedish_cefr_train.tsv --test-data swedish_cefr_test.tsv --save-model-dir trained_model
 ```
 
 ## Limitations

@@ -32,13 +32,14 @@ evaluation.
 ## Evaluation
 
 The classifier was evaluated on a separate 120-example held-out test dataset
-after training on 600 Swedish CEFR examples.
+after training on 600 Swedish CEFR examples. The explicit train and test files
+were shuffled reproducibly with `random_state=1004`.
 
 | Classifier | Accuracy | Macro F1 |
 | --- | ---: | ---: |
 | Linear SVM | 0.867 | 0.866 |
 | Logistic Regression | 0.850 | 0.848 |
-| Random Forest | 0.783 | 0.777 |
+| Random Forest | 0.808 | 0.805 |
 | KNN | 0.708 | 0.704 |
 
 ## Limitations

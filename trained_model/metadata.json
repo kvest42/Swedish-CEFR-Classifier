@@ -11,7 +11,9 @@
     "C2"
   ],
   "training_examples": 600,
-  "test_size": 0.0,
+  "test_examples": 120,
+  "random_state": 1004,
+  "evaluation_setup": "Explicit held-out test dataset",
   "artifact_files": [
     "classifier.joblib",
     "label_encoder.joblib",

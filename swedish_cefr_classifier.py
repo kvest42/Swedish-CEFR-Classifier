@@ -35,6 +35,7 @@ LABEL_COLUMN = 'label'
 LIX_COLUMN = 'lix'
 DEFAULT_MODEL = 'nicher92/saga-embed_v1'
 HF_DATASET = 'UppsalaNLP/swedish-text-complexity'
+RANDOM_STATE = 1004
 
 
 def load_pandas():
@@ -449,6 +450,9 @@ def train_and_evaluate_explicit_split(
     test_labels = set(test_data[LABEL_COLUMN])
     if train_labels != test_labels:
         raise ValueError('Train and test datasets must contain the same label set.')
+
+    train_data = train_data.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
+    test_data = test_data.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
 
     label_encoder = LabelEncoder()
     y_train = label_encoder.fit_transform(train_data[LABEL_COLUMN].tolist())
